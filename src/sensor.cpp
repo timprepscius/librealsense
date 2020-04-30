@@ -246,8 +246,7 @@ namespace librealsense
         auto system_time = environment::get_instance().get_time_service()->get_time();
         auto fr = std::make_shared<frame>();
         byte* pix = (byte*)fo.pixels;
-        std::vector<byte> pixels(pix, pix + fo.frame_size);
-        fr->data = pixels;
+        fr->data.assign(pix, pix + fo.frame_size);
         fr->set_stream(profile);
 
         // generate additional data

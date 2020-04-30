@@ -8,6 +8,7 @@
 #include <atomic>
 #include <array>
 #include <math.h>
+#include "frame_data_type.h"
 
 namespace librealsense
 {
@@ -95,7 +96,7 @@ namespace librealsense
     class LRS_EXTENSION_API frame : public frame_interface
     {
     public:
-        std::vector<byte> data;
+        frame_data_type data;
         frame_additional_data additional_data;
         std::shared_ptr<metadata_parser_map> metadata_parsers = nullptr;
         explicit frame() : ref_count(0), _kept(false), owner(nullptr), on_release() {}
@@ -112,7 +113,7 @@ namespace librealsense
         frame& operator=(const frame& r) = delete;
         frame& operator=(frame&& r)
         {
-            data = move(r.data);
+            data = std::move(r.data);
             owner = r.owner;
             ref_count = r.ref_count.exchange(0);
             _kept = r._kept.exchange(false);
