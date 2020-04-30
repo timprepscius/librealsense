@@ -209,6 +209,15 @@ public:
         dispatcher* _owner;
     };
 
+    struct init_none {};
+    dispatcher(init_none)
+        : _queue(0),
+          _was_stopped(true),
+          _was_flushed(false),
+          _is_alive(true)
+    {
+    }
+
     dispatcher(unsigned int cap)
         : _queue(cap),
           _was_stopped(true),
@@ -299,8 +308,11 @@ public:
             _was_flushed = false;
         }
 
-        std::unique_lock<std::mutex> lock_was_flushed(_was_flushed_mutex);
-        _was_flushed_cv.wait_for(lock_was_flushed, std::chrono::hours(999999), [&]() { return _was_flushed.load(); });
+        if (_thread.joinable())
+        {
+            std::unique_lock<std::mutex> lock_was_flushed(_was_flushed_mutex);
+            _was_flushed_cv.wait_for(lock_was_flushed, std::chrono::hours(999999), [&]() { return _was_flushed.load(); });
+        }
 
         _queue.start();
     }
@@ -310,7 +322,9 @@ public:
         stop();
         _queue.clear();
         _is_alive = false;
-        _thread.join();
+
+        if (_thread.joinable())
+            _thread.join();
     }
 
     bool flush()
@@ -361,10 +375,10 @@ private:
 };
 
 template<class T = std::function<void(dispatcher::cancellable_timer)>>
-class active_object
+class active_object_via_dispatcher
 {
 public:
-    active_object(T operation)
+    active_object_via_dispatcher(T operation)
         : _operation(std::move(operation)), _dispatcher(1), _stopped(true)
     {
     }
@@ -383,7 +397,7 @@ public:
         _dispatcher.stop();
     }
 
-    ~active_object()
+    ~active_object_via_dispatcher()
     {
         stop();
     }
@@ -404,6 +418,75 @@ private:
     dispatcher _dispatcher;
     std::atomic<bool> _stopped;
 };
+
+
+template<class T = std::function<void(dispatcher::cancellable_timer)>>
+class active_object_via_thread
+{
+public:
+    active_object_via_thread(T operation)
+        : _operation(std::move(operation)), 
+        _stopped(true), 
+        _dispatcher(dispatcher::init_none())
+    {
+    }
+
+    void dispatch_loop ()
+    {
+        while (!_stopped)
+        {
+            auto ct = dispatcher::cancellable_timer(&_dispatcher);
+            _operation(ct);
+        }
+    }
+
+    void start()
+    {
+        _stopped = false;
+        _dispatcher.start();
+        _dispatchThread = std::thread(&active_object_via_thread<T>::dispatch_loop, this);
+    }
+
+    void stop()
+    {
+        _stopped = true;
+        _dispatcher.stop();
+        if (_dispatchThread.joinable())
+            _dispatchThread.join();
+    }
+
+    ~active_object_via_thread()
+    {
+        stop();
+    }
+private:
+    std::thread _dispatchThread;
+    dispatcher _dispatcher;
+    T _operation;
+    std::atomic<bool> _stopped;
+};
+
+template<class T = std::function<void(dispatcher::cancellable_timer)>>
+class active_object : public active_object_via_thread<T>
+{
+protected:
+    typedef active_object_via_thread<T> Super;
+public:
+    active_object(T operation) : 
+        Super(operation)
+    {}
+
+    void start ()
+    {
+        Super::start();
+    }
+
+    void stop ()
+    {
+        Super::stop();
+    }
+} ;
+
 
 class watchdog
 {
