@@ -100,7 +100,7 @@ namespace librealsense
             virtual ~time_service() = default;
         };
 
-        class os_time_service: public time_service
+        class os_time_service_realtime: public time_service
         {
         public:
             rs2_time_t get_time() const override
@@ -108,6 +108,30 @@ namespace librealsense
                 return std::chrono::duration<double, std::milli>(std::chrono::system_clock::now().time_since_epoch()).count();
             }
         };
+
+        class os_time_service_monotonic: public time_service
+        {
+        public:
+
+            typedef std::chrono::high_resolution_clock clock_type;
+            clock_type clock;
+            clock_type::time_point startTime;
+
+            os_time_service_monotonic ()
+            {
+                startTime = clock.now();
+            }
+
+            rs2_time_t get_time() const override
+            {
+                const static double microsecondsInMillisecond = 1000000 / 1000;
+                double value = std::chrono::duration_cast<std::chrono::microseconds>(clock.now() - startTime).count() / microsecondsInMillisecond;
+                
+                return value;
+            }
+        };        
+
+        typedef os_time_service_monotonic os_time_service;
 
         struct guid { uint32_t data1; uint16_t data2, data3; uint8_t data4[8]; };
         // subdevice and node fields are assigned by Host driver; unit and GUID are hard-coded in camera firmware
