@@ -190,6 +190,9 @@ int rs2_try_wait_for_frame(rs2_frame_queue* queue, unsigned int timeout_ms, rs2_
 */
 void rs2_enqueue_frame(rs2_frame* frame, void* queue);
 
+// I really want to use size_t, but not defined.  Will just use int for now
+int rs2_frame_queue_size(rs2_frame_queue* queue);
+
 /**
 * Creates Align processing block.
 * \param[in] align_to   stream type to be used as the target of frameset alignment
