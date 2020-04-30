@@ -442,7 +442,7 @@ namespace librealsense
         frame->get_stream()->set_format(stream_format);
         frame->get_stream()->set_stream_index(int(stream_id.stream_index));
         frame->get_stream()->set_stream_type(stream_id.stream_type);
-        video_frame->data = std::move(msg->data);
+        video_frame->data.assign(msg->data.begin(), msg->data.end());
         librealsense::frame_holder fh{ video_frame };
         LOG_DEBUG("Created image frame: " << stream_id << " " << video_frame->get_width() << "x" << video_frame->get_height() << " " << stream_format);
 
