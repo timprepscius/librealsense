@@ -215,6 +215,11 @@ namespace rs2
         */
         size_t capacity() const { return _capacity; }
 
+        size_t size() const 
+        { 
+            return rs2_frame_queue_size(_queue.get()); 
+        }
+
         /**
         * Return whether or not the queue calls keep on enqueued frames
         * \return keeping frames

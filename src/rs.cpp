@@ -969,6 +969,14 @@ void rs2_enqueue_frame(rs2_frame* frame, void* queue) BEGIN_API_CALL
 }
 NOEXCEPT_RETURN(, frame, queue)
 
+int rs2_frame_queue_size(rs2_frame_queue* queue) BEGIN_API_CALL
+{
+    VALIDATE_NOT_NULL(queue);
+    auto q = reinterpret_cast<rs2_frame_queue*>(queue);
+    return q->queue.size();
+}
+NOEXCEPT_RETURN(0, queue)
+
 void rs2_flush_queue(rs2_frame_queue* queue, rs2_error** error) BEGIN_API_CALL
 {
     VALIDATE_NOT_NULL(queue);
