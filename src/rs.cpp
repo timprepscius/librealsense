@@ -781,6 +781,14 @@ rs2_time_t rs2_get_frame_timestamp(const rs2_frame* frame_ref, rs2_error** error
 }
 HANDLE_EXCEPTIONS_AND_RETURN(0, frame_ref)
 
+rs2_time_t rs2_get_frame_system_time(const rs2_frame* frame_ref, rs2_error** error) BEGIN_API_CALL
+{
+    VALIDATE_NOT_NULL(frame_ref);
+    return ((frame_interface*)frame_ref)->get_frame_system_time();
+}
+
+HANDLE_EXCEPTIONS_AND_RETURN(0, frame_ref)
+
 rs2_timestamp_domain rs2_get_frame_timestamp_domain(const rs2_frame* frame_ref, rs2_error** error) BEGIN_API_CALL
 {
     VALIDATE_NOT_NULL(frame_ref);

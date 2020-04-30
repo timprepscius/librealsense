@@ -103,6 +103,14 @@ rs2_timestamp_domain rs2_get_frame_timestamp_domain(const rs2_frame* frameset, r
 rs2_time_t rs2_get_frame_timestamp(const rs2_frame* frame, rs2_error** error);
 
 /**
+* retrieve timestamp from frame handle in milliseconds
+* \param[in] frame      handle returned from a callback
+* \param[out] error     if non-null, receives any error that occurs during this call, otherwise, errors are ignored
+* \return               the timestamp of the frame in milliseconds
+*/
+rs2_time_t rs2_get_frame_system_time(const rs2_frame* frame, rs2_error** error);
+
+/**
 * retrieve frame parent sensor from frame handle
 * \param[in] frame      handle returned from a callback
 * \param[out] error     if non-null, receives any error that occurs during this call, otherwise, errors are ignored

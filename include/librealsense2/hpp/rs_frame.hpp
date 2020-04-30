@@ -472,6 +472,14 @@ namespace rs2
             return r;
         }
 
+        double get_system_time() const
+        {
+            rs2_error* e = nullptr;
+            auto r = rs2_get_frame_system_time(frame_ref, &e);
+            error::handle(e);
+            return r;
+        }
+
         /** retrieve the timestamp domain
         * \return            timestamp domain (clock name) for timestamp values
         */
