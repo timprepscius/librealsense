@@ -211,7 +211,7 @@ void on_frame (const rs2::frameset& frameset)
             << std::endl;
 
         FrameInfo header {
-            i,
+            uint64_t(i),
             frameNumber,
             timestamp,
             system_time,
