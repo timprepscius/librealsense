@@ -24,6 +24,7 @@ using namespace TCLAP;
 typedef uint64_t timetype;
 
 struct FrameInfo {
+    uint64_t streamNumber;
     uint64_t frameIndex;
     timetype deviceTime;
     timetype systemTime;
@@ -210,6 +211,7 @@ void on_frame (const rs2::frameset& frameset)
             << std::endl;
 
         FrameInfo header {
+            i,
             frameNumber,
             timestamp,
             system_time,
