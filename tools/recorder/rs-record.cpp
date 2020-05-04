@@ -243,6 +243,7 @@ int main(int argc, char * argv[]) try
     ValueArg<int>    time("t", "Time", "Amount of time to record (in seconds)", false, 10, "");
     ValueArg<std::string> out_file("f", "FullFilePath", "the file where the data will be saved to", false, "test.bag", "");
 
+    cmd.add(resolution);
     cmd.add(time);
     cmd.add(out_file);
     cmd.parse(argc, argv);
