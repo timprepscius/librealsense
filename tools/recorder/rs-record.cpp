@@ -28,6 +28,7 @@ struct FrameInfo {
     uint64_t frameIndex;
     timetype deviceTime;
     timetype systemTime;
+    uint64_t width, height;
     uint64_t datasize;
 };
 
@@ -62,6 +63,8 @@ struct CameraExtrinsics
 struct InfraredFileHeader {
     CameraIntrinsics cameraIntrinsics;
     CameraExtrinsics cameraExtrinsics;
+
+    uint64_t requestedWidth, requestedHeight;
 } ;
 
 
@@ -71,6 +74,7 @@ struct InfraredFileHeader {
 
 std::ofstream streamFile;
 std::mutex streamFileMutex;
+int requestedWidth, requestedHeight, requestedFPS;
 
 InfraredFileHeader infraredFileHeaders[2];
 
@@ -135,6 +139,9 @@ void write_headers (rs2::pipeline_profile &pipelineProfile)
     {
         std::cout << "infrared " << i << " FPS " << infrareds[0].fps() << std::endl;
 
+        infraredFileHeaders[i].requestedWidth = requestedWidth;
+        infraredFileHeaders[i].requestedHeight = requestedHeight;
+
         if (infrareds.size() > 1)
         {
             auto to = i == 0 ? 1 : 0;
@@ -193,11 +200,13 @@ void on_frame (const rs2::frameset& frameset)
         uint64_t datasize = infraredFrame.get_data_size();
         auto *data = infraredFrame.get_data();
 
-        auto multiplier = 1000000;
+        auto multiplier = 1000000.0;
 
         auto frameNumber = infraredFrame.get_frame_number();
-        timetype timestamp = timetype(infraredFrame.get_timestamp() * 1000000.0);
-        timetype system_time = timetype(infraredFrame.get_system_time() * 1000000.0);
+        timetype timestamp = timetype(infraredFrame.get_timestamp() * multiplier);
+        timetype system_time = timetype(infraredFrame.get_system_time() * multiplier);
+        uint64_t width = infraredFrame.get_width();
+        uint64_t height = infraredFrame.get_height();
 
         std::cout 
             << " frameNumber " << frameNumber
@@ -215,6 +224,7 @@ void on_frame (const rs2::frameset& frameset)
             frameNumber,
             timestamp,
             system_time,
+            width, height,
             datasize
         } ;
 
@@ -229,6 +239,7 @@ int main(int argc, char * argv[]) try
 {
     // Parse command line arguments
     CmdLine cmd("librealsense rs-record example tool", ' ');
+    ValueArg<int>    resolution("r", "Resolution", "Resolution choice 848 or 1280", false, 848, "");
     ValueArg<int>    time("t", "Time", "Amount of time to record (in seconds)", false, 10, "");
     ValueArg<std::string> out_file("f", "FullFilePath", "the file where the data will be saved to", false, "test.bag", "");
 
@@ -238,12 +249,31 @@ int main(int argc, char * argv[]) try
 
     std::cout << "starting" << std::endl;
 
+    if (resolution.getValue()==848)
+    {
+        requestedWidth = 848;
+        requestedHeight = 480;
+        requestedFPS = 90;
+    }
+    else
+    if (resolution.getValue()==1280)
+    {
+        requestedWidth = 1280;
+        requestedHeight = 720;
+        requestedFPS = 30;
+    }
+    else
+    {
+        std::cout << "resolution not found" << std::endl;
+        return 1;
+    }
+
     streamFile.open(out_file.getValue(), std::ios::binary);
 
     rs2::pipeline pipe;
     rs2::config cfg;
-    cfg.enable_stream(RS2_STREAM_INFRARED, 1, 848, 480, RS2_FORMAT_Y8, 90);
-    cfg.enable_stream(RS2_STREAM_INFRARED, 2, 848, 480, RS2_FORMAT_Y8, 90);
+    cfg.enable_stream(RS2_STREAM_INFRARED, 1, requestedWidth, requestedHeight, RS2_FORMAT_Y8, requestedFPS);
+    cfg.enable_stream(RS2_STREAM_INFRARED, 2, requestedWidth, requestedHeight, RS2_FORMAT_Y8, requestedFPS);
     auto expectedFrameCount = 2;
 
     std::cout << "sizeof FrameInfo " << sizeof(FrameInfo) << std::endl;
