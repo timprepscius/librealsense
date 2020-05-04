@@ -442,6 +442,9 @@ public:
 
     void start()
     {
+        if (!_stopped)
+            return;
+
         _stopped = false;
         _dispatcher.start();
         _dispatchThread = std::thread(&active_object_via_thread<T>::dispatch_loop, this);
@@ -449,6 +452,9 @@ public:
 
     void stop()
     {
+        if (_stopped)
+            return;
+
         _stopped = true;
         _dispatcher.stop();
         if (_dispatchThread.joinable())
