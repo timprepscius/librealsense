@@ -1,5 +1,8 @@
+third-party/opencv*
+
 bin/
 lib/
+build/
 
 ubuntu-xenial/
 ubuntu-xenial-hwe/

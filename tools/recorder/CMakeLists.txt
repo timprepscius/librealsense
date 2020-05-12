@@ -7,11 +7,13 @@ project(RealsenseToolsRecorder)
 
 add_executable(rs-record rs-record.cpp)
 set_property(TARGET rs-record PROPERTY CXX_STANDARD 11)
-target_link_libraries(rs-record ${DEPENDENCIES})
-include_directories(rs-record ../../common ../../third-party/tclap/include)
+target_link_libraries(rs-record ${DEPENDENCIES} opencv_core opencv_highgui opencv_calib3d opencv_features2d opencv_imgproc)
+include_directories(rs-record ../../common ../../third-party/tclap/include ../../build/third-party/opencv/install/include/)
 set_target_properties (rs-record PROPERTIES
     FOLDER "Tools"
 )
+target_link_directories(rs-record PRIVATE ../../build/third-party/opencv/install/lib)
+#target_link_directories(rs-record PRIVATE /usr/local/opt/opencv/lib)
 
 install(
     TARGETS

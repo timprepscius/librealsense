@@ -15,6 +15,8 @@
 #include "tclap/CmdLine.h"
 #include <fstream>
 
+#include "ChessboardCalibrationCam.h"
+
 using namespace TCLAP;
 
 // ----------------------------------------
@@ -186,6 +188,8 @@ void write_headers (rs2::pipeline_profile &pipelineProfile)
     }
 }
 
+std::vector<ChessboardCalibrationCam> calibrations;
+
 void on_frame (const rs2::frameset& frameset)
 {
     std::lock_guard<std::mutex> lock(streamFileMutex);
@@ -194,8 +198,8 @@ void on_frame (const rs2::frameset& frameset)
     if (frameset.size() != expectedFrameCount)
         return;
 
-    for (auto i =0; i<2; ++i)
-    {
+    for (auto i=0; i<2; ++i)
+    {        
         auto infraredFrame = frameset.get_infrared_frame(i+1);
         uint64_t datasize = infraredFrame.get_data_size();
         auto *data = infraredFrame.get_data();
@@ -219,6 +223,17 @@ void on_frame (const rs2::frameset& frameset)
             << ", " << system_time 
             << std::endl;
 
+        if (!calibrations.empty())
+        {
+            cv::Mat viewGrey(cv::Size(width, height), CV_8UC1, (void *)data);
+            calibrations[i].run(viewGrey);
+            cv::waitKey(1);
+
+            if (!calibrations[i].found)
+                continue;
+        }
+
+
         FrameInfo header {
             uint64_t(i),
             frameNumber,
@@ -230,6 +245,8 @@ void on_frame (const rs2::frameset& frameset)
 
         streamFile.write((char *)&header, sizeof(header));
         streamFile.write((char *)data, datasize);
+
+
     }
 
     std::cout << ".";
@@ -239,16 +256,28 @@ int main(int argc, char * argv[]) try
 {
     // Parse command line arguments
     CmdLine cmd("librealsense rs-record example tool", ' ');
+    ValueArg<int>    calibration("c", "calibration", "calibration", false, 0, "");
+    ValueArg<int>    boardWidth("u", "boardWidth", "boardWidth", false, 8, "");
+    ValueArg<int>    boardHeight("v", "boardHeight", "boardHeight", false, 6, "");
     ValueArg<int>    resolution("r", "Resolution", "Resolution choice 848 or 1280", false, 848, "");
     ValueArg<int>    time("t", "Time", "Amount of time to record (in seconds)", false, 10, "");
     ValueArg<std::string> out_file("f", "FullFilePath", "the file where the data will be saved to", false, "test.bag", "");
 
+    cmd.add(calibration);
+    cmd.add(boardWidth);
+    cmd.add(boardHeight);
     cmd.add(resolution);
     cmd.add(time);
     cmd.add(out_file);
     cmd.parse(argc, argv);
 
     std::cout << "starting" << std::endl;
+
+    if (calibration.getValue())
+    {
+        calibrations.emplace_back("0", cv::Size(boardWidth.getValue(),boardHeight.getValue()));
+        calibrations.emplace_back("1", cv::Size(boardWidth.getValue(),boardHeight.getValue()));
+    }
 
     if (resolution.getValue()==848)
     {
@@ -285,13 +314,17 @@ int main(int argc, char * argv[]) try
 
     auto t = std::chrono::system_clock::now();
     auto t0 = t;
+    auto calibrating = !calibrations.empty();
 
-    while (t - t0 <= std::chrono::seconds(time.getValue()))
+    while (t - t0 <= std::chrono::seconds(time.getValue()) || calibrating)
     {
         auto frameset = pipe.wait_for_frames(250);
         on_frame(frameset);
 
         t = std::chrono::system_clock::now();
+
+        if (!calibrations.empty())
+            calibrating = !calibrations[0].isCalibrated || !calibrations[1].isCalibrated;
     }
 
     std::cout << "\nFinished" << std::endl;

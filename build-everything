@@ -1,0 +1,40 @@
+set -x
+
+rm -rf build
+
+pushd third-party
+
+        rm -rf opencv-3.4.8*
+        wget -O  opencv-3.4.8.tar.gz https://github.com/opencv/opencv/archive/3.4.8.tar.gz
+        tar xf opencv-*.tar.gz
+        ln -s opencv-3.4.8 opencv
+
+popd  
+
+
+
+mkdir -p build/third-party/opencv
+pushd build/third-party/opencv
+
+        cmake \
+                -DBUILD_LIST=dnn,imgcodecs,videoio,highgui,video,calib3d \
+                -DBUILD_EXAMPLES=OFF \
+                -DCMAKE_INSTALL_PREFIX=./install \
+                -DWITH_LAPACK=OFF \
+                -DWITH_OPENCL=OFF \
+                -DWITH_TBB=OFF \
+                -DBUILD_TBB=OFF \
+                ../../../third-party/opencv \
+
+#                -DBUILD_SHARED_LIBS=OFF \
+
+
+        make install
+
+popd
+
+pushd build
+        cmake ../ -D BUILD_SHARED_LIBS=false
+make
+
+

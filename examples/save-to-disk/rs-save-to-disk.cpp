@@ -21,10 +21,49 @@ int main(int argc, char * argv[]) try
     // Declare depth colorizer for pretty visualization of depth data
     rs2::colorizer color_map;
 
-    // Declare RealSense pipeline, encapsulating the actual device and sensors
+    std::cout << "starting" << std::endl;
+
+    auto resolution = 848;
+    int requestedWidth, requestedHeight, requestedFPS;
+    if (resolution==848)
+    {
+        requestedWidth = 848;
+        requestedHeight = 480;
+        requestedFPS = 90;
+    }
+    else
+    if (resolution==1280)
+    {
+        requestedWidth = 1280;
+        requestedHeight = 720;
+        requestedFPS = 30;
+    }
+    else
+    {
+        std::cout << "resolution not found" << std::endl;
+        return 1;
+    }
+
     rs2::pipeline pipe;
+    rs2::config cfg;
+    cfg.enable_stream(RS2_STREAM_INFRARED, 1, requestedWidth, requestedHeight, RS2_FORMAT_Y8, requestedFPS);
+    cfg.enable_stream(RS2_STREAM_INFRARED, 2, requestedWidth, requestedHeight, RS2_FORMAT_Y8, requestedFPS);
+    auto expectedFrameCount = 2;
+
+    // Declare RealSense pipeline, encapsulating the actual device and sensors
+    // rs2::pipeline pipe;
     // Start streaming with default recommended configuration
-    pipe.start();
+    auto pipelineProfile = pipe.start(cfg);
+
+    rs2::device selected_device = pipelineProfile.get_device();
+
+    for (auto &sensor : selected_device.query_sensors())
+    {
+        if (sensor.supports(RS2_OPTION_EMITTER_ENABLED))
+        {
+            sensor.set_option(RS2_OPTION_EMITTER_ENABLED, 0.f);
+        }        
+    }
 
     // Capture 30 frames to give autoexposure, etc. a chance to settle
     for (auto i = 0; i < 30; ++i) pipe.wait_for_frames();
